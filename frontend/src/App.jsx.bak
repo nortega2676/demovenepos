@@ -1,0 +1,1315 @@
+import { useState, useEffect } from 'react';
+import { Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import appConfig from './config/appConfig';
+import {
+  Box,
+  Grid,
+  Paper,
+  Button,
+  Typography,
+  AppBar,
+  Toolbar,
+  IconButton,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  TextField,
+  Radio,
+  RadioGroup,
+  FormControlLabel,
+  FormControl,
+  FormLabel,
+  InputLabel,
+  Snackbar,
+  Alert,
+  Menu,
+  MenuItem,
+  Select
+} from '@mui/material';
+
+// Usar la URL base de la API desde la configuración
+const API_BASE_URL = appConfig.api.baseUrl;
+import {
+  Menu as MenuIcon,
+  ShoppingCart,
+  Person,
+  Settings,
+  Add,
+  Remove,
+  DeleteOutline,
+  Login,
+  Logout,
+  AddCircleOutline,
+  MoreVert,
+  People as PeopleIcon,
+  Close as CloseIcon
+} from '@mui/icons-material';
+import UserManagement from './components/UserManagement';
+import SalesReport from './components/SalesReport';
+
+function App() {
+  // Estado inicial
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [orderItems, setOrderItems] = useState([]);
+  const [total, setTotal] = useState(0);
+  const [openPaymentDialog, setOpenPaymentDialog] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('efectivo');
+  const [amountPaid, setAmountPaid] = useState('');
+  const [change, setChange] = useState(0);
+  const [openSnackbar, setOpenSnackbar] = useState(false);
+  const [snackbarMessage, setSnackbarMessage] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [openLoginDialog, setOpenLoginDialog] = useState(false);
+  const [openAdminMenu, setOpenAdminMenu] = useState(null);
+  const [openAddProductDialog, setOpenAddProductDialog] = useState(false);
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    price: '',
+    category: 'food'
+  });
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [openAddCategoryDialog, setOpenAddCategoryDialog] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [openUserManagement, setOpenUserManagement] = useState(false);
+  const [mainMenuAnchor, setMainMenuAnchor] = useState(null);
+  const [reportsMenuAnchor, setReportsMenuAnchor] = useState(null);
+  const [adminMenuAnchor, setAdminMenuAnchor] = useState(null);
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const handleMainMenuOpen = (event) => {
+    setMainMenuAnchor(event.currentTarget);
+  };
+
+  const handleMainMenuClose = () => {
+    setMainMenuAnchor(null);
+    setReportsMenuAnchor(null);
+    setAdminMenuAnchor(null);
+  };
+
+  const handleReportsMenuOpen = (event) => {
+    event.stopPropagation();
+    setReportsMenuAnchor(event.currentTarget);
+  };
+
+  const handleAdminMenuOpen = (event) => {
+    event.stopPropagation();
+    setAdminMenuAnchor(event.currentTarget);
+  };
+
+  const handleCloseUserManagement = () => {
+    setOpenUserManagement(false);
+  };
+
+  // Cerrar menús cuando cambia la ruta
+  useEffect(() => {
+    setMainMenuAnchor(null);
+    setReportsMenuAnchor(null);
+    setAdminMenuAnchor(null);
+  }, [location.pathname]);
+
+  // Navegar a la ruta del reporte
+  const handleViewSalesReport = () => {
+    handleMainMenuClose();
+    navigate('/reportes/ventas');
+  };
+
+  // Funciones de manejo
+  const handleLogin = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/login`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al iniciar sesión');
+      }
+
+      // Guardar el token y la información del usuario
+      localStorage.setItem('token', data.token);
+      localStorage.setItem('user', JSON.stringify(data.user));
+      
+      setIsAdmin(data.user.role === 'admin');
+      setOpenLoginDialog(false);
+      setSnackbarMessage(`Sesión iniciada como ${data.user.username}`);
+      setOpenSnackbar(true);
+      setUsername('');
+      setPassword('');
+    } catch (error) {
+      console.error('Error de autenticación:', error);
+      setSnackbarMessage(error.message || 'Error al iniciar sesión');
+      setOpenSnackbar(true);
+    }
+  };
+
+  const handleLogout = () => {
+    // Eliminar el token y la información del usuario
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    
+    setIsAdmin(false);
+    setOpenAdminMenu(null);
+    setSnackbarMessage('Sesión cerrada');
+    setOpenSnackbar(true);
+  };
+
+  const handleOpenAddCategoryDialog = () => {
+    setOpenAddCategoryDialog(true);
+    setNewCategoryName(''); // Limpiar el campo de texto
+  };
+
+  const handleCloseAddProductDialog = () => {
+    setOpenAddProductDialog(false);
+    setNewProduct({ name: '', price: '', category: categories[0]?.id || '' });
+  };
+
+  const handleAddProduct = async () => {
+    if (newProduct.name && newProduct.price && newProduct.category) {
+      try {
+        const response = await fetch(`${API_BASE_URL}/products`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: newProduct.name.trim(),
+            price: parseFloat(newProduct.price),
+            category: newProduct.category
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Error al agregar el producto');
+        }
+
+        const addedProduct = await response.json();
+        // Solo agrega el producto si el backend devuelve un id válido
+        if (addedProduct && addedProduct.id) {
+          setProducts(prevProducts => [...prevProducts, addedProduct]);
+        } else {
+          setSnackbarMessage('El backend no devolvió un ID válido para el producto');
+          setOpenSnackbar(true);
+        }
+        setSnackbarMessage('Producto agregado correctamente');
+        setOpenSnackbar(true);
+        handleCloseAddProductDialog();
+      } catch (error) {
+        console.error('Error al agregar el producto:', error);
+        setSnackbarMessage(error.message || 'Error al agregar el producto');
+        setOpenSnackbar(true);
+      }
+    } else {
+      setSnackbarMessage('Por favor completa todos los campos');
+      setOpenSnackbar(true);
+    }
+  };
+
+  const handleCloseAddCategoryDialog = () => {
+    setOpenAddCategoryDialog(false);
+    setNewCategoryName('');
+  };
+
+  const handleAddCategory = async () => {
+    if (newCategoryName.trim() !== '') {
+      try {
+        const response = await fetch(`${API_BASE_URL}/categories`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            name: newCategoryName.trim()
+          }),
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.error || 'Error al agregar la categoría');
+        }
+
+        const addedCategory = await response.json();
+        setCategories(prevCategories => [...prevCategories, addedCategory]);
+        setSnackbarMessage('Categoría agregada correctamente');
+        setOpenSnackbar(true);
+        handleCloseAddCategoryDialog();
+      } catch (error) {
+        console.error('Error al agregar la categoría:', error);
+        setSnackbarMessage(error.message || 'Error al agregar la categoría');
+        setOpenSnackbar(true);
+      }
+    } else {
+      setSnackbarMessage('El nombre de la categoría no puede estar vacío');
+      setOpenSnackbar(true);
+    }
+  };
+
+  // Efectos
+  useEffect(() => {
+    const newTotal = orderItems.reduce((sum, item) => sum + (item.subtotal || 0), 0);
+    setTotal(newTotal);
+  }, [orderItems]);
+
+  // Cargar categorías desde la API
+  const [categories, setCategories] = useState([]);
+  
+  useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/categories`);
+        const data = await response.json();
+        setCategories(data);
+      } catch (error) {
+        console.error('Error al cargar las categorías:', error);
+        setSnackbarMessage('Error al cargar las categorías');
+        setOpenSnackbar(true);
+      }
+    };
+    
+    fetchCategories();
+  }, []);
+
+  // Cargar productos desde la API
+  const [products, setProducts] = useState([]);
+  
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/products`);
+        const data = await response.json();
+        setProducts(data);
+      } catch (error) {
+        console.error('Error al cargar los productos:', error);
+        setSnackbarMessage('Error al cargar los productos');
+        setOpenSnackbar(true);
+      }
+    };
+    
+    fetchProducts();
+  }, []);
+
+  const filteredProducts = selectedCategory === 'all' 
+    ? products 
+    : products.filter(product => product.category === selectedCategory);
+
+  const handleAddToOrder = (product) => {
+    const existingItem = orderItems.find(item => item.id === product.id);
+    
+    if (existingItem) {
+      const updatedItems = orderItems.map(item =>
+        item.id === product.id
+          ? { ...item, quantity: item.quantity + 1, subtotal: (item.quantity + 1) * item.price }
+          : item
+      );
+      setOrderItems(updatedItems);
+    } else {
+      setOrderItems([...orderItems, {
+        ...product,
+        quantity: 1,
+        subtotal: product.price
+      }]);
+    }
+  };
+
+  const handleRemoveFromOrder = (productId) => {
+    setOrderItems(orderItems.map(item =>
+      item.id === productId
+        ? { ...item, quantity: item.quantity - 1, subtotal: (item.quantity - 1) * item.price }
+        : item
+    ).filter(item => item.quantity > 0));
+  };
+
+  const handleDeleteItem = (productId) => {
+    setOrderItems(orderItems.filter(item => item.id !== productId));
+  };
+
+  const handleOpenPaymentDialog = () => {
+    setOpenPaymentDialog(true);
+  };
+
+  const handleClosePaymentDialog = () => {
+    setOpenPaymentDialog(false);
+    setPaymentMethod('efectivo');
+    setAmountPaid('');
+    setChange(0);
+  };
+
+  const handlePaymentMethodChange = (event) => {
+    setPaymentMethod(event.target.value);
+  };
+
+  const handleAmountPaidChange = (event) => {
+    const amount = parseFloat(event.target.value);
+    setAmountPaid(event.target.value);
+    setChange(amount - total);
+  };
+
+  const handleProcessPayment = async () => {
+    if (paymentMethod === 'efectivo' && parseFloat(amountPaid) < total) {
+      setSnackbarMessage('El monto pagado es insuficiente.');
+      setOpenSnackbar(true);
+      return;
+    }
+    // Construir el objeto de venta
+    const ventaData = {
+      total: total,
+      metodo_pago: paymentMethod,
+      detalles: orderItems.map(item => ({
+        producto_id: item.id,
+        cantidad: item.quantity,
+        precio_unitario: item.precio || item.price,
+        subtotal: item.subtotal
+      }))
+    };
+    const token = localStorage.getItem('token');
+    try {
+      const response = await fetch(`${API_BASE_URL}/ventas`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(ventaData)
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setOrderItems([]);
+        setTotal(0);
+        setPaymentMethod('efectivo');
+        setAmountPaid('');
+        setChange(0);
+        setOpenPaymentDialog(false);
+        setSnackbarMessage('Venta registrada correctamente');
+        setOpenSnackbar(true);
+      } else {
+        setSnackbarMessage(data.error || 'Error al registrar la venta');
+        setOpenSnackbar(true);
+      }
+    } catch (error) {
+      setSnackbarMessage('Error de red o servidor al registrar la venta');
+      setOpenSnackbar(true);
+    }
+  };
+
+
+  const handleCloseSnackbar = () => {
+    setOpenSnackbar(false);
+  };
+
+  return (
+    <Box sx={{
+      height: '100vh',
+      width: '100vw',
+      display: 'flex',
+      flexDirection: 'column',
+      overflow: 'hidden',
+      backgroundColor: '#f5f5f5'
+    }}>
+      {/* Barra de navegación superior */}
+      <AppBar position="static" sx={{ zIndex: (theme) => theme.zIndex.drawer + 1 }}>
+        <Toolbar>
+          <Box>
+            <IconButton
+              size="large"
+              edge="start"
+              color="inherit"
+              aria-label="menu"
+              aria-controls="main-menu"
+              aria-haspopup="true"
+              onClick={handleMainMenuOpen}
+              sx={{ mr: 2 }}
+            >
+              <MenuIcon />
+            </IconButton>
+            <Menu
+              id="main-menu"
+              anchorEl={mainMenuAnchor}
+              anchorOrigin={{
+                vertical: 'bottom',
+                horizontal: 'left',
+              }}
+              keepMounted
+              transformOrigin={{
+                vertical: 'top',
+                horizontal: 'left',
+              }}
+              open={Boolean(mainMenuAnchor)}
+              onClose={handleMainMenuClose}
+            >
+
+              <MenuItem onClick={handleReportsMenuOpen} sx={{ py: 1.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+                  <Typography variant="body1" fontWeight="medium">📊 Reportes</Typography>
+                  <span style={{ marginLeft: '8px' }}>▶</span>
+                </Box>
+              </MenuItem>
+              <MenuItem onClick={handleAdminMenuOpen} sx={{ py: 1.5 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', justifyContent: 'space-between' }}>
+                  <Typography variant="body1" fontWeight="medium">⚙️ Administración</Typography>
+                  <span style={{ marginLeft: '8px' }}>▶</span>
+                </Box>
+              </MenuItem>
+              {/* Menú desplegable de Reportes */}
+              <Menu
+                id="reports-menu"
+                anchorEl={reportsMenuAnchor}
+                open={Boolean(reportsMenuAnchor)}
+                onClose={handleMainMenuClose}
+                anchorOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'left',
+                }}
+                sx={{
+                  '& .MuiPaper-root': {
+                    ml: 1,
+                    boxShadow: 3,
+                    minWidth: '220px',
+                    '& .MuiMenuItem-root': {
+                      py: 1.5,
+                    }
+                  },
+                }}
+              >
+                <MenuItem onClick={handleViewSalesReport}>
+                  <Typography variant="body1">📊 Reporte de Ventas</Typography>
+                </MenuItem>
+                <MenuItem onClick={handleMainMenuClose}>
+                  <Typography variant="body1">📦 Reporte de Productos</Typography>
+                </MenuItem>
+                <MenuItem onClick={handleMainMenuClose}>
+                  <Typography variant="body1">💳 Reporte por Tipo de Pago</Typography>
+                </MenuItem>
+              </Menu>
+              {/* Menú desplegable de Administración */}
+              <Menu
+                id="admin-menu"
+                anchorEl={adminMenuAnchor}
+                open={Boolean(adminMenuAnchor)}
+                onClose={handleMainMenuClose}
+                anchorOrigin={{
+                  vertical: 'top',
+                  horizontal: 'right',
+                }}
+                transformOrigin={{
+                  vertical: 'top',
+                  horizontal: 'left',
+                }}
+                sx={{
+                  '& .MuiPaper-root': {
+                    ml: 1,
+                    boxShadow: 3,
+                  },
+                }}
+              >
+                <MenuItem onClick={handleMainMenuClose}>Configuración General</MenuItem>
+                <MenuItem onClick={handleMainMenuClose}>Usuarios y Permisos</MenuItem>
+                <MenuItem onClick={handleMainMenuClose}>Respaldar Base de Datos</MenuItem>
+              </Menu>
+            </Menu>
+          </Box>
+          <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+            {appConfig.companyName} - {appConfig.appTitle}
+          </Typography>
+          <IconButton color="inherit" onClick={() => setOpenPaymentDialog(true)}>
+            <ShoppingCart />
+          </IconButton>
+          <Box>
+            <IconButton 
+              color="inherit" 
+              onClick={(e) => {
+                if (isAdmin) {
+                  setOpenAdminMenu(e.currentTarget);
+                } else {
+                  setOpenLoginDialog(true);
+                }
+              }}
+            >
+              {isAdmin ? <Person color="secondary" /> : <Login />}
+            </IconButton>
+            <Menu
+              anchorEl={openAdminMenu}
+              open={Boolean(openAdminMenu)}
+              onClose={() => setOpenAdminMenu(null)}
+            >
+              <MenuItem onClick={() => {
+                setOpenAddProductDialog(true);
+                setOpenAdminMenu(null);
+              }}>
+                <AddCircleOutline sx={{ mr: 1 }} /> Agregar Producto
+              </MenuItem>
+              <MenuItem onClick={() => {
+                handleOpenAddCategoryDialog();
+                setOpenAdminMenu(null);
+              }}>
+                <AddCircleOutline sx={{ mr: 1 }} /> Agregar Categoría
+              </MenuItem>
+              <MenuItem onClick={() => {
+                setOpenUserManagement(true);
+                setOpenAdminMenu(null);
+              }}>
+                <PeopleIcon sx={{ mr: 1 }} /> Gestión de Usuarios
+              </MenuItem>
+              <MenuItem onClick={handleLogout}>
+                <Logout sx={{ mr: 1 }} /> Cerrar Sesión
+              </MenuItem>
+            </Menu>
+          </Box>
+        </Toolbar>
+      </AppBar>
+
+      {/* Main Content with Routes */}
+      <Box sx={{ display: 'flex', flexGrow: 1, overflow: 'hidden' }}>
+        <Routes>
+          {/* Sales Report Route */}
+          <Route path="/reportes/ventas" element={<SalesReport />} />
+          
+          {/* Main App Route */}
+          <Route 
+            path="/" 
+            element={
+              <Box sx={{ display: 'flex', width: '100%', height: '100%' }}>
+                {/* Order Panel */}
+                <Box
+                  sx={{
+                    width: '300px',
+                    flexShrink: 0,
+                    display: { xs: 'none', md: 'flex' },
+                    flexDirection: 'column',
+                    borderRight: '1px solid #e0e0e0',
+                    backgroundColor: '#ffffff'
+                  }}
+                >
+                  {/* Panel Header */}
+                  <Box sx={{ p: 2, borderBottom: '1px solid #e0e0e0' }}>
+                    <Typography variant="h6">Orden Actual</Typography>
+                  </Box>
+
+                  {/* Order Items List */}
+                  <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+                    {orderItems.length === 0 ? (
+                      <Typography color="textSecondary" align="center" sx={{ mt: 2 }}>
+                        No hay productos en la orden
+                      </Typography>
+                    ) : (
+                      orderItems.map((item) => (
+                        <Paper
+                          key={item.id}
+                          sx={{
+                            p: 2,
+                            mb: 1,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'space-between'
+                          }}
+                        >
+                          <Box sx={{ flexGrow: 1 }}>
+                            <Typography variant="subtitle1">{item.name}</Typography>
+                            <Typography variant="body2" color="text.secondary">
+                              ${item.price.toFixed(2)} x {item.quantity}
+                            </Typography>
+                          </Box>
+                          <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleRemoveFromOrder(item.id)}
+                            >
+                              <Remove fontSize="small" />
+                            </IconButton>
+                            <Typography sx={{ mx: 1 }}>{item.quantity}</Typography>
+                            <IconButton
+                              size="small"
+                              onClick={() => handleAddToOrder(item)}
+                            >
+                              <Add fontSize="small" />
+                            </IconButton>
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => handleDeleteItem(item.id)}
+                              sx={{ ml: 1 }}
+                            >
+                              <DeleteOutline fontSize="small" />
+                            </IconButton>
+                          </Box>
+                        </Paper>
+                      ))
+                    )}
+                  </Box>
+                  
+                  {/* Order Total */}
+                  <Box sx={{ p: 2, borderTop: '1px solid #e0e0e0', backgroundColor: '#f5f5f5' }}>
+                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                      <Typography variant="subtitle1">Total:</Typography>
+                      <Typography variant="subtitle1" fontWeight="bold">
+                        ${total.toFixed(2)}
+                      </Typography>
+                    </Box>
+                    <Button
+                      fullWidth
+                      variant="contained"
+                      color="primary"
+                      onClick={handleOpenPaymentDialog}
+                      disabled={orderItems.length === 0}
+                    >
+                      Cobrar (${total.toFixed(2)})
+                    </Button>
+                  </Box>
+                </Box>
+                
+                {/* Main Content */}
+                <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                  {/* Categories Filter */}
+                  <Paper sx={{ p: 2, borderRadius: 0, boxShadow: 1 }}>
+                    <Box sx={{ display: 'flex', gap: 1, overflowX: 'auto', pb: 1 }}>
+                      {categories.map((category) => (
+                        <Button
+                          key={category.id}
+                          variant={selectedCategory === category.id ? 'contained' : 'outlined'}
+                          onClick={() => setSelectedCategory(category.id)}
+                          sx={{ whiteSpace: 'nowrap' }}
+                        >
+                          {category.name}
+                        </Button>
+                      ))}
+                    </Box>
+                  </Paper>
+                  
+                  {/* Products Grid */}
+                  <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+                    <Grid container spacing={2}>
+                      {filteredProducts.map((product) => (
+                        <Grid item xs={6} sm={4} md={3} lg={2} key={product.id}>
+                          <Paper
+                            elevation={1}
+                            sx={{
+                              p: 2,
+                              height: '100%',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              cursor: 'pointer',
+                              '&:hover': { boxShadow: 3 }
+                            }}
+                            onClick={() => handleAddToOrder(product)}
+                          >
+                            <Box sx={{ flexGrow: 1 }}>
+                              <Typography variant="subtitle1" noWrap>{product.name}</Typography>
+                              <Typography variant="body2" color="text.secondary" noWrap>
+                                {product.category}
+                              </Typography>
+                            </Box>
+                            <Box sx={{ mt: 1, textAlign: 'right' }}>
+                              <Typography variant="h6" color="primary">
+                                ${product.price.toFixed(2)}
+                              </Typography>
+                            </Box>
+                          </Paper>
+                        </Grid>
+                      ))}
+                    </Grid>
+                  </Box>
+                </Box>
+              </Box>
+            }
+          />
+        </Routes>
+      </Box>
+
+      {/* Payment Dialog */}
+      <Dialog open={openPaymentDialog} onClose={handleClosePaymentDialog}>
+        <DialogTitle>Procesar Pago</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2, minWidth: '300px' }}>
+            <FormControl component="fieldset" sx={{ mb: 2 }}>
+              <FormLabel component="legend">Método de Pago</FormLabel>
+              <RadioGroup
+                row
+                value={paymentMethod}
+                onChange={handlePaymentMethodChange}
+              >
+                <FormControlLabel value="efectivo" control={<Radio />} label="Efectivo" />
+                <FormControlLabel value="tarjeta" control={<Radio />} label="Tarjeta" />
+              </RadioGroup>
+            </FormControl>
+            <TextField
+              fullWidth
+              label="Monto Recibido"
+              type="number"
+              value={amountPaid}
+              onChange={handleAmountPaidChange}
+              sx={{ mb: 2 }}
+            />
+            {change > 0 && (
+              <Typography variant="h6" color="primary" sx={{ mb: 2 }}>
+                Cambio: ${change.toFixed(2)}
+              </Typography>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleClosePaymentDialog}>Cancelar</Button>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={handleProcessPayment}
+            disabled={!amountPaid || parseFloat(amountPaid) < total}
+          >
+            Confirmar Pago
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar for notifications */}
+      <Snackbar 
+        open={openSnackbar} 
+        autoHideDuration={3000} 
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%' }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
+
+      {/* User Management Dialog */}
+      <Dialog 
+        open={openUserManagement} 
+        onClose={() => setOpenUserManagement(false)}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Gestión de Usuarios
+          <IconButton
+            edge="end"
+            onClick={() => setOpenUserManagement(false)}
+            aria-label="close"
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent>
+          <UserManagement />
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Product Dialog */}
+      <Dialog open={openAddProductDialog} onClose={handleCloseAddProductDialog}>
+        <DialogTitle>Agregar Nuevo Producto</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2, mb: 1, minWidth: '300px' }}>
+            <TextField
+              fullWidth
+              label="Nombre del Producto"
+              value={newProduct.name}
+              onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              fullWidth
+              label="Precio"
+              type="number"
+              value={newProduct.price}
+              onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
+              sx={{ mb: 2 }}
+            />
+            <FormControl fullWidth sx={{ mb: 2 }}>
+              <InputLabel>Categoría</InputLabel>
+              <Select
+                value={newProduct.category}
+                label="Categoría"
+                onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
+              >
+                {categories.map((category) => (
+                  <MenuItem key={category.id} value={category.id}>
+                    {category.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseAddProductDialog}>Cancelar</Button>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={handleAddProduct}
+            disabled={!newProduct.name || !newProduct.price || !newProduct.category}
+          >
+            Agregar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Add Category Dialog */}
+      <Dialog open={openAddCategoryDialog} onClose={handleCloseAddCategoryDialog}>
+        <DialogTitle>Agregar Nueva Categoría</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2, mb: 1, minWidth: '300px' }}>
+            <TextField
+              fullWidth
+              label="Nombre de la Categoría"
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseAddCategoryDialog}>Cancelar</Button>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={handleAddCategory}
+            disabled={!newCategoryName.trim()}
+          >
+            Agregar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Login Dialog */}
+      <Dialog open={openLoginDialog} onClose={() => setOpenLoginDialog(false)}>
+        <DialogTitle>Iniciar Sesión</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2, mb: 1, minWidth: '300px' }}>
+            <TextField
+              fullWidth
+              label="Usuario"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+            <TextField
+              fullWidth
+              label="Contraseña"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleLogin()}
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenLoginDialog(false)}>Cancelar</Button>
+          <Button 
+            variant="contained" 
+            color="primary" 
+            onClick={handleLogin}
+            disabled={!username || !password}
+          >
+            Ingresar
+          </Button>
+        </DialogActions>
+      </Dialog>
+    </Box>
+  );
+}
+
+export default App;
+                  elevation={0}
+                  sx={{
+                    p: 2,
+                    mb: 2,
+                    backgroundColor: '#f8f8f8',
+                    borderRadius: 1
+                  }}
+                >
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                    <Typography fontWeight="bold">{item.name}</Typography>
+                    <IconButton
+                      size="small"
+                      onClick={() => handleDeleteItem(item.id)}
+                      sx={{ p: 0.5 }}
+                    >
+                      <DeleteOutline fontSize="small" />
+                    </IconButton>
+                  </Box>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                      <IconButton
+                        size="small"
+                        onClick={() => handleRemoveFromOrder(item.id)}
+                        disabled={item.quantity <= 1}
+                      >
+                        <Remove fontSize="small" />
+                      </IconButton>
+                      <Typography mx={1}>{item.quantity}</Typography>
+                      <IconButton size="small" onClick={() => handleAddToOrder(item)}>
+                        <Add fontSize="small" />
+                      </IconButton>
+                    </Box>
+                    <Typography>${item.subtotal.toFixed(2)}</Typography>
+                  </Box>
+                </Paper>
+              ))
+            )}
+          </Box>
+
+          {/* Total y botón de pago */}
+          <Box sx={{ p: 2, borderTop: '1px solid #e0e0e0' }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
+              <Typography variant="h6">Total:</Typography>
+              <Typography variant="h6" color="primary">
+                ${total.toFixed(2)}
+              </Typography>
+            </Box>
+            <Button
+              variant="contained"
+              color="primary"
+              fullWidth
+              size="large"
+              onClick={handleOpenPaymentDialog}
+              disabled={orderItems.length === 0}
+            >
+              Pagar ${total.toFixed(2)}
+            </Button>
+          </Box>
+        </Box>
+
+        {/* Área principal */}
+
+                <Button
+                  key={category.id}
+                  variant={selectedCategory === category.id ? 'contained' : 'outlined'}
+                  onClick={() => setSelectedCategory(category.id)}
+                  sx={{
+                    whiteSpace: 'nowrap',
+                    minWidth: '100px',
+                    maxWidth: '120px',
+                    flexShrink: 0,
+                    px: 2,
+                    textOverflow: 'ellipsis',
+                    overflow: 'hidden',
+                    textAlign: 'center',
+                    '& .MuiButton-label': {
+                      width: '100%',
+                      display: 'inline-block',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis'
+                    }
+                  }}
+                >
+                  {category.name}
+                </Button>
+              ))}
+            </Box>
+          </Paper>
+
+          {/* Lista de productos */}
+          <Box sx={{ flex: 1, overflow: 'auto', p: 2 }}>
+            <Box 
+              sx={{ 
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))',
+                gap: 2
+              }}
+            >
+              {filteredProducts.map((product) => (
+                <Box 
+                  key={product.id} 
+                  sx={{ 
+                    position: 'relative',
+                    paddingBottom: '100%',
+                    height: 0
+                  }}
+                >
+                  <Paper
+                    className="product-card"
+                    elevation={1}
+                    onClick={() => handleAddToOrder(product)}
+                    sx={{
+                      position: 'absolute',
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      p: 2,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      cursor: 'pointer',
+                      borderRadius: 2,
+                      transition: 'all 0.2s ease-in-out',
+                      '&:hover': {
+                        transform: 'translateY(-2px)',
+                        boxShadow: 3
+                      }
+                    }}
+                  >
+                    <Box sx={{ 
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between'
+                    }}>
+                      <Typography 
+                        variant="h6" 
+                        sx={{ 
+                          fontSize: '1rem', 
+                          fontWeight: 500,
+                          display: '-webkit-box',
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: 'vertical',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          minHeight: '48px',
+                          mb: 1
+                        }}
+                      >
+                        {product.name}
+                      </Typography>
+                      <Typography
+                        variant="h6"
+                        color="primary"
+                        sx={{ 
+                          fontSize: '1.2rem', 
+                          fontWeight: 'bold', 
+                          textAlign: 'right',
+                          mt: 'auto'
+                        }}
+                      >
+                        ${product.price.toFixed(2)}
+                      </Typography>
+                    </Box>
+                  </Paper>
+                </Box>
+              ))}
+            </Box>
+          </Box>
+        </Box>
+      </Box>
+
+      {/* Diálogos */}
+      {/* Diálogo de Gestión de Usuarios */}
+      <Dialog 
+        open={openUserManagement} 
+        onClose={handleCloseUserManagement}
+        maxWidth="lg"
+        fullWidth
+        sx={{ '& .MuiDialog-paper': { maxWidth: '95%', width: '95%', height: '90vh' } }}
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          Gestión de Usuarios
+          <IconButton
+            edge="end"
+            color="inherit"
+            onClick={handleCloseUserManagement}
+            aria-label="close"
+          >
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ p: 0, display: 'flex', flexDirection: 'column', height: '100%' }}>
+          <UserManagement onClose={handleCloseUserManagement} />
+        </DialogContent>
+        <DialogActions>
+          <Button 
+            onClick={handleCloseUserManagement} 
+            variant="contained" 
+            color="primary"
+            sx={{ m: 2 }}
+          >
+            Cerrar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={openPaymentDialog} onClose={handleClosePaymentDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>Procesar Pago</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2, mb: 3 }}>
+            <Typography variant="h6" align="right" gutterBottom>
+              Total: <strong>${total.toFixed(2)}</strong>
+            </Typography>
+            
+            <FormControl component="fieldset" sx={{ mt: 2, width: '100%' }}>
+              <FormLabel component="legend">Método de Pago</FormLabel>
+              <RadioGroup 
+                value={paymentMethod} 
+                onChange={handlePaymentMethodChange}
+                sx={{ mt: 1 }}
+              >
+                <FormControlLabel value="efectivo" control={<Radio />} label="Efectivo" />
+                <FormControlLabel value="tarjeta" control={<Radio />} label="Tarjeta" />
+                <FormControlLabel value="transferencia" control={<Radio />} label="Transferencia" />
+              </RadioGroup>
+            </FormControl>
+            
+            {paymentMethod === 'efectivo' && (
+              <Box sx={{ mt: 2 }}>
+                <TextField
+                  label="Monto Recibido"
+                  type="number"
+                  value={amountPaid}
+                  onChange={handleAmountPaidChange}
+                  fullWidth
+                  margin="normal"
+                  InputProps={{
+                    startAdornment: '$',
+                  }}
+                />
+                {change > 0 && (
+                  <Typography variant="h6" color="primary" align="right" sx={{ mt: 1 }}>
+                    Cambio: ${change.toFixed(2)}
+                  </Typography>
+                )}
+                {amountPaid && parseFloat(amountPaid) < total && (
+                  <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+                    Monto insuficiente
+                  </Typography>
+                )}
+              </Box>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 0 }}>
+          <Button onClick={handleClosePaymentDialog} color="inherit">
+            Cancelar
+          </Button>
+          <Button 
+            onClick={handleProcessPayment} 
+            variant="contained" 
+            color="primary"
+            disabled={paymentMethod === 'efectivo' && (!amountPaid || parseFloat(amountPaid) < total)}
+          >
+            Confirmar Pago
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={openLoginDialog} onClose={() => setOpenLoginDialog(false)}>
+        <DialogTitle>Iniciar Sesión</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2, mb: 1 }}>
+            <TextField
+              label="Usuario"
+              fullWidth
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              margin="normal"
+            />
+            <TextField
+              label="Contraseña"
+              type="password"
+              fullWidth
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              margin="normal"
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenLoginDialog(false)}>Cancelar</Button>
+          <Button onClick={handleLogin} variant="contained" color="primary">
+            Iniciar Sesión
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={openAddProductDialog} onClose={handleCloseAddProductDialog}>
+        <DialogTitle>Agregar Nuevo Producto</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2, mb: 1, minWidth: '300px' }}>
+            <TextField
+              label="Nombre del Producto"
+              fullWidth
+              value={newProduct.name}
+              onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
+              margin="normal"
+            />
+            <TextField
+              label="Precio"
+              type="number"
+              fullWidth
+              value={newProduct.price}
+              onChange={(e) => setNewProduct({...newProduct, price: e.target.value})}
+              margin="normal"
+              InputProps={{
+                startAdornment: '$',
+              }}
+            />
+            <FormControl fullWidth margin="normal">
+              <InputLabel>Categoría</InputLabel>
+              <Select
+                value={newProduct.category || ''}
+                label="Categoría"
+                onChange={(e) => setNewProduct({...newProduct, category: e.target.value})}
+              >
+                {categories
+                  .filter(category => category.id !== 'all') // Excluir la categoría 'Todo'
+                  .map((category) => (
+                    <MenuItem key={category.id} value={category.id}>
+                      {category.name}
+                    </MenuItem>
+                  ))}
+              </Select>
+            </FormControl>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseAddProductDialog}>Cancelar</Button>
+          <Button 
+            onClick={handleAddProduct} 
+            variant="contained" 
+            color="primary"
+            disabled={!newProduct.name || !newProduct.price}
+          >
+            Agregar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={openAddCategoryDialog} onClose={handleCloseAddCategoryDialog}>
+        <DialogTitle>Agregar Nueva Categoría</DialogTitle>
+        <DialogContent>
+          <Box sx={{ mt: 2, mb: 1, minWidth: '300px' }}>
+            <TextField
+              label="Nombre de la Categoría"
+              fullWidth
+              value={newCategoryName}
+              onChange={(e) => setNewCategoryName(e.target.value)}
+              margin="normal"
+            />
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseAddCategoryDialog}>Cancelar</Button>
+          <Button 
+            onClick={handleAddCategory} 
+            variant="contained" 
+            color="primary"
+            disabled={newCategoryName.trim() === ''}
+          >
+            Agregar
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar */}
+      <Snackbar
+        open={openSnackbar}
+        autoHideDuration={6000}
+        onClose={handleCloseSnackbar}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert onClose={handleCloseSnackbar} severity="success" sx={{ width: '100%' }}>
+          {snackbarMessage}
+        </Alert>
+      </Snackbar>
+    </Box>
+  );
+}
+
+export default App;

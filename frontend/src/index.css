@@ -1,0 +1,151 @@
+/* Estilos globales para la aplicación */
+:root {
+  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+
+  /* Configuración de tema claro/oscuro */
+  color-scheme: light dark;
+  color: rgba(0, 0, 0, 0.87);
+  background-color: #e8f5e9; /* Verde muy claro */
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* Estilos del cuerpo del documento */
+body {
+  margin: 0;
+  padding: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  background-color: #e8f5e9; /* Verde muy claro */
+  min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #e8f5e9; /* Verde claro */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #66bb6a; /* Verde medio */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #4caf50; /* Verde oscuro */
+}
+
+h1 {
+  font-size: 3.2em;
+  line-height: 1.1;
+}
+
+/* Estilos para botones */
+button {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  padding: 0.6em 1.2em;
+  font-size: 1em;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+button:hover {
+  opacity: 0.9;
+}
+
+button:focus,
+button:focus-visible {
+  outline: none;
+}
+
+/* Estilos para enlaces */
+a {
+  color: #2e7d32; /* Verde oscuro */
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: #1b5e20; /* Verde más oscuro */
+  text-decoration: underline;
+}
+
+/* Estilos para la barra de desplazamiento */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #e8f5e9; /* Verde muy claro */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #81c784; /* Verde claro */
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #66bb6a; /* Verde medio */
+}
+
+/* Estilos para el tema oscuro */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color: #e8f5e9; /* Verde muy claro */
+    background-color: #1b5e20; /* Verde oscuro */
+  }
+  
+  body {
+    background-color: #1b5e20; /* Verde oscuro */
+  }
+  
+  a {
+    color: #81c784; /* Verde claro */
+  }
+  
+  a:hover {
+    color: #a5d6a7; /* Verde claro más suave */
+  }
+  
+  ::-webkit-scrollbar-track {
+    background: #1b5e20; /* Verde oscuro */
+  }
+  
+  ::-webkit-scrollbar-thumb {
+    background: #2e7d32; /* Verde oscuro */
+  }
+  
+  ::-webkit-scrollbar-thumb:hover {
+    background: #388e3c; /* Verde oscuro más claro */
+  }
+}

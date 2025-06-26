@@ -1,0 +1,17 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title id="app-title">VenePOS - Cargando...</title>
+    <script type="module">
+      // Configuración del título desde las variables de entorno
+      document.title = `VenePOS - ${import.meta.env.VITE_APP_TITLE || 'La Providencia'}`;
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
