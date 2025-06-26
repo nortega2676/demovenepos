@@ -1,3 +1,0 @@
-ALTER TABLE ventas ADD COLUMN usuario_id INT;
-
-ALTER TABLE ventas ADD CONSTRAINT fk_usuario_ventas FOREIGN KEY (usuario_id) REFERENCES usuarios(id) ON DELETE SET NULL ON UPDATE CASCADE;
