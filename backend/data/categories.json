@@ -1,0 +1,38 @@
+[
+  {
+    "id": "all",
+    "name": "Todo"
+  },
+  {
+    "id": "drinks",
+    "name": "Bebidas"
+  },
+  {
+    "id": "food",
+    "name": "Comidas"
+  },
+  {
+    "id": "desserts",
+    "name": "Postres"
+  },
+  {
+    "name": "Pizzas",
+    "id": "category-1747779989894"
+  },
+  {
+    "name": "Desayunos",
+    "id": "category-1747780236631"
+  },
+  {
+    "name": "Cafes",
+    "id": "category-1747780329221"
+  },
+  {
+    "name": "Ensaladas",
+    "id": "category-1747782223976"
+  },
+  {
+    "name": "Detodo",
+    "id": "category-1747878191349"
+  }
+]
