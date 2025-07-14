@@ -78,7 +78,13 @@ const cierreVentaController = {
         user: req.user
       });
 
-      const { fecha_cierre, monto, diferencia, tipo = 'general' } = req.body;
+      // Extraer solo los campos necesarios y descartar cualquier otro campo como 'tipo'
+      const { fecha_cierre, monto, diferencia } = req.body;
+      
+      // Eliminar el campo 'tipo' si existe en el cuerpo de la solicitud
+      if (req.body.tipo) {
+        delete req.body.tipo;
+      }
       const usuario_id = req.user?.id;
 
       // Validar campos requeridos
@@ -118,38 +124,20 @@ const cierreVentaController = {
         });
       }
 
-      // Validar que el tipo sea válido
-      if (tipo !== 'general' && tipo !== 'personal') {
-        const error = 'Tipo de cierre no válido';
-        console.error('Error de validación:', error);
-        return res.status(400).json({
-          success: false,
-          error
-        });
-      }
+
 
       console.log('Datos validados correctamente:', {
         fecha_cierre,
         monto,
         diferencia,
-        usuario_id,
-        tipo
+        usuario_id
       });
 
-      // Verificar si ya existe un cierre para esta fecha según el tipo
-      let existeCierre = false;
-      let errorMensaje = '';
-      
-      if (tipo === 'personal') {
-        existeCierre = await cierreVentaModel.existeCierrePersonalParaFecha(fecha_cierre, usuario_id);
-        errorMensaje = `Ya existe un cierre de caja personal para la fecha ${fecha_cierre}`;
-      } else {
-        // Para cierres generales, verificar que no exista un cierre general para la fecha
-        existeCierre = await cierreVentaModel.existeCierreGeneralParaFecha(fecha_cierre);
-        errorMensaje = `Ya existe un cierre de caja general para la fecha ${fecha_cierre}`;
-      }
+      // Verificar si ya existe un cierre para esta fecha
+      const existeCierre = await cierreVentaModel.existeCierreGeneralParaFecha(fecha_cierre);
       
       if (existeCierre) {
+        const errorMensaje = `Ya existe un cierre de caja para la fecha ${fecha_cierre}`;
         console.error('Error de validación:', errorMensaje);
         return res.status(400).json({
           success: false,
@@ -162,8 +150,7 @@ const cierreVentaController = {
         fecha_cierre,
         monto: parseFloat(monto),
         diferencia: parseFloat(diferencia),
-        usuario_id,
-        tipo
+        usuario_id
       };
 
       console.log('Creando cierre de venta con datos:', cierreData);
@@ -172,7 +159,7 @@ const cierreVentaController = {
       res.status(201).json({
         success: true,
         data: nuevoCierre,
-        message: `Cierre de caja ${tipo} guardado exitosamente`
+        message: 'Cierre de caja guardado exitosamente'
       });
 
     } catch (error) {

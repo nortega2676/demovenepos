@@ -18,11 +18,11 @@ const cierreVentaModel = {
       
       const sql = `
         INSERT INTO cierre_venta 
-        (fecha_cierre, monto, diferencia, usuario_id, tipo) 
-        VALUES (?, ?, ?, ?, ?)
+        (fecha_cierre, monto, diferencia, usuario_id) 
+        VALUES (?, ?, ?, ?)
       `;
       
-      const params = [fecha_cierre, monto, diferencia, usuario_id, tipo];
+      const params = [fecha_cierre, monto, diferencia, usuario_id];
       
       // Create a copy of params for logging
       const paramsCopy = [...params];
@@ -62,8 +62,8 @@ const cierreVentaModel = {
     const connection = await pool.getConnection();
     try {
       const [rows] = await connection.query(
-        'SELECT id_cierre FROM cierre_venta WHERE DATE(fecha_cierre) = ? AND usuario_id = ? AND tipo = ?',
-        [fecha, usuarioId, 'personal']
+        'SELECT id_cierre FROM cierre_venta WHERE DATE(fecha_cierre) = ? AND usuario_id = ?',
+        [fecha, usuarioId]
       );
       
       return rows.length > 0;
@@ -80,8 +80,8 @@ const cierreVentaModel = {
     const connection = await pool.getConnection();
     try {
       const [rows] = await connection.query(
-        'SELECT id_cierre FROM cierre_venta WHERE DATE(fecha_cierre) = ? AND tipo = ?',
-        [fecha, 'general']
+        'SELECT id_cierre FROM cierre_venta WHERE DATE(fecha_cierre) = ?',
+        [fecha]
       );
       
       return rows.length > 0;
